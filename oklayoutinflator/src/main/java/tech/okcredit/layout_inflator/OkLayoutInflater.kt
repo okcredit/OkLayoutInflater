@@ -9,6 +9,9 @@ import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.LayoutInflaterCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.*
 
 /**
@@ -18,7 +21,7 @@ import kotlinx.coroutines.*
  * 3. does not support setting a {@link LayoutInflater.Factory} nor {@link LayoutInflater.Factory2}. Here we are Adding support
  * 4. There is no way to cancel ongoing inflation. here we are exposing coroutine job cancel method
  */
-class OkLayoutInflater(context: Context) {
+class OkLayoutInflater(context: Context): DefaultLifecycleObserver {
 
     private val mInflater: LayoutInflater = BasicInflater(context)
     private val coroutineContext = SupervisorJob()
@@ -35,9 +38,7 @@ class OkLayoutInflater(context: Context) {
         }
     }
 
-    fun cancel() {
-        coroutineContext.cancelChildren()
-    }
+
 
     private suspend fun inflateView(
         @LayoutRes resId: Int,
@@ -90,4 +91,12 @@ class OkLayoutInflater(context: Context) {
             }
         }
     }
+
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        super.onDestroy(owner)
+        coroutineContext.cancel()
+        coroutineContext.cancelChildren()
+    }
+
 }
