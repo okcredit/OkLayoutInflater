@@ -31,8 +31,5 @@ class MainFragment : Fragment() {
         return v
     }
 
-    override fun onDestroyView() {
-        okLayoutInflater.cancel()
-        super.onDestroyView()
-    }
+
 }
