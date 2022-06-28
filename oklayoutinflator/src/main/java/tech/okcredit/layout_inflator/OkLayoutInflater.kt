@@ -6,11 +6,11 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.LayoutInflaterCompat
 import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.*
 
@@ -21,11 +21,15 @@ import kotlinx.coroutines.*
  * 3. does not support setting a {@link LayoutInflater.Factory} nor {@link LayoutInflater.Factory2}. Here we are Adding support
  * 4. There is no way to cancel ongoing inflation. here we are exposing coroutine job cancel method
  */
-class OkLayoutInflater(context: Context): DefaultLifecycleObserver {
+class OkLayoutInflater(val context: Context) : DefaultLifecycleObserver {
 
     private val mInflater: LayoutInflater = BasicInflater(context)
-    private val coroutineContext = SupervisorJob()
-    private val scope = CoroutineScope(Dispatchers.Default + coroutineContext)
+    val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.Default + job)
+
+    init {
+        context.getLifeCycleOwner()?.lifecycle?.addObserver(this)
+    }
 
     fun inflate(
         @LayoutRes resId: Int,
@@ -36,8 +40,9 @@ class OkLayoutInflater(context: Context): DefaultLifecycleObserver {
             val view = inflateView(resId, parent)
             withContext(Dispatchers.Main) { callback.invoke(view) }
         }
-    }
 
+
+    }
 
 
     private suspend fun inflateView(
@@ -45,6 +50,8 @@ class OkLayoutInflater(context: Context): DefaultLifecycleObserver {
         parent: ViewGroup?,
     ): View = try {
         mInflater.inflate(resId, parent, false)
+
+
     } catch (ex: RuntimeException) {
         Log.e("AsyncInf", "AsyncInf Failed to inflate on bg thread. message=${ex.message}")
 
@@ -56,6 +63,7 @@ class OkLayoutInflater(context: Context): DefaultLifecycleObserver {
 
     private class BasicInflater constructor(context: Context?) : LayoutInflater(context) {
 
+
         override fun cloneInContext(newContext: Context): LayoutInflater {
             return BasicInflater(newContext)
         }
@@ -65,6 +73,11 @@ class OkLayoutInflater(context: Context): DefaultLifecycleObserver {
             for (prefix in sClassPrefixList) {
                 try {
                     val view = createView(name, prefix, attrs)
+
+
+
+
+
                     if (view != null) {
                         return view
                     }
@@ -89,14 +102,18 @@ class OkLayoutInflater(context: Context): DefaultLifecycleObserver {
                     LayoutInflaterCompat.setFactory2(this, appCompatDelegate)
                 }
             }
+
+
         }
     }
 
-
     override fun onDestroy(owner: LifecycleOwner) {
         super.onDestroy(owner)
-        coroutineContext.cancel()
-        coroutineContext.cancelChildren()
+
+        context.getLifeCycleOwner()?.lifecycle?.removeObserver(this)
+        job.cancel()
+        job.cancelChildren()
     }
+
 
 }
