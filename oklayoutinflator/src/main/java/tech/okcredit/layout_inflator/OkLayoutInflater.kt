@@ -6,7 +6,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.LayoutInflaterCompat
@@ -44,7 +43,6 @@ class OkLayoutInflater(val context: Context) : DefaultLifecycleObserver {
 
     }
 
-
     private suspend fun inflateView(
         @LayoutRes resId: Int,
         parent: ViewGroup?,
@@ -73,11 +71,6 @@ class OkLayoutInflater(val context: Context) : DefaultLifecycleObserver {
             for (prefix in sClassPrefixList) {
                 try {
                     val view = createView(name, prefix, attrs)
-
-
-
-
-
                     if (view != null) {
                         return view
                     }
@@ -109,7 +102,6 @@ class OkLayoutInflater(val context: Context) : DefaultLifecycleObserver {
 
     override fun onDestroy(owner: LifecycleOwner) {
         super.onDestroy(owner)
-
         context.getLifeCycleOwner()?.lifecycle?.removeObserver(this)
         job.cancel()
         job.cancelChildren()
