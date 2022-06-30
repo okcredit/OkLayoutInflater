@@ -36,28 +36,43 @@ class OkLayoutInflater : LifecycleEventObserver {
     private val coroutineContext = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + coroutineContext)
 
+    /**
+     * @param context For view inflation & adding Lifecycle Observer, if possible.
+     */
     constructor(context: Context) {
         init(context)
     }
 
+    /**
+     * @param fragment For view inflation & adding Observer to the [Fragment.getViewLifecycleOwner].
+     */
     constructor(fragment: Fragment) {
         this.fragment = fragment
         init(fragment.requireContext())
     }
 
+    /**
+     * @param view For child view inflation in Custom Views.
+     * Inflation is cancelled if the view provided is detached from the window.
+     */
+    constructor(view: View) {
+        this.context = view.context
+        view.onViewDetachedFromWindow { cancelInflation() }
+    }
+
     private fun init(context: Context) {
         this.context = context
-        if (context is LifecycleOwner) {
-            // Fragments 'may' outlive the View in some cases, so we use the View's Lifecycle
-            (fragment?.viewLifecycleOwner?.lifecycle ?: context.lifecycle).let { lifecycle ->
-                componentLifecycle = lifecycle
-                componentLifecycle!!.addObserver(this)
-            }
+        componentLifecycle = if (fragment != null) fragment!!.viewLifecycleOwner.lifecycle
+        else if (context is LifecycleOwner) context.lifecycle
+        else null
+
+        if (componentLifecycle != null) {
+            componentLifecycle!!.addObserver(this)
         } else {
             Log.d(
                 tag,
                 "Current context does not seem to have a Lifecycle, make sure to call `cancelInflation()` " +
-                        "in your onDestroy or other appropriate callback."
+                        "in your onDestroy or other appropriate lifecycle callback."
             )
         }
     }
