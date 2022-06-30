@@ -13,7 +13,7 @@ Using OkLayoutInflater, we have improved threading limitations.
 
 ### Usage
 
-**Example in Fragment**
+**Example in a Fragment**
 
 ```
 private val okLayoutInflater by lazy { OkLayoutInflater(this) }
@@ -27,10 +27,10 @@ override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, saved
 }
 ```
 
-**Example of usage in View**
+**Example of usage in a View**
 
 ```
-private val okLayoutInflater by lazy { OkLayoutInflater(context) }
+private val okLayoutInflater by lazy { OkLayoutInflater(this) }
 
 override fun onAttachedToWindow() {
     super.onAttachedToWindow()
