@@ -4,10 +4,10 @@ AndroidX [AsyncLayoutInflater](https://developer.android.com/reference/androidx/
 has some limitations. Here is an improved version of AsyncLayoutInflater with Coroutines.
 
 1. Single thread to do all the inflate work
-2. Inflate work is not lifecycle aware/There is no way to cancel ongoing inflation
-3. Does not support LayoutInflater.Factory2.
+2. Inflate work is not lifecycle aware, there is no way to cancel ongoing inflation
+3. Does not support LayoutInflater.Factory2
 4. The default size limit of the cache queue is 10. If it exceeds 10, it will cause the main thread
-   to wait.
+   to wait
 
 Using OkLayoutInflater, we have improved threading limitations.
 
@@ -20,8 +20,8 @@ private val okLayoutInflater by lazy { OkLayoutInflater(this) }
 
 override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
     val loadingView = inflater.inflate(R.layout.loader_view, container, false)
-    okLayoutInflater.inflate(contentLayoutId, container) {
-        (loadingView as? ViewGroup)?.addView(it)
+    okLayoutInflater.inflate(contentLayoutId, container) { inflatedView ->
+        (loadingView as? ViewGroup)?.addView(inflatedView)
     }
     return loadingView
 }
