@@ -57,7 +57,7 @@ class OkLayoutInflater : LifecycleEventObserver {
      */
     constructor(view: View) {
         this.context = view.context
-        view.onViewDetachedFromWindow { cancelInflation() }
+        view.onViewDetachedFromWindow { cancel() }
     }
 
     private fun init(context: Context) {
@@ -88,7 +88,7 @@ class OkLayoutInflater : LifecycleEventObserver {
         }
     }
 
-    fun cancelInflation() {
+    fun cancel() {
         coroutineContext.cancel()
         coroutineContext.cancelChildren()
     }
@@ -141,7 +141,7 @@ class OkLayoutInflater : LifecycleEventObserver {
 
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
         if (event == Lifecycle.Event.ON_DESTROY) {
-            cancelInflation()
+            cancel()
             componentLifecycle?.removeObserver(this)
         }
     }
