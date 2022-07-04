@@ -9,20 +9,73 @@ import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.LayoutInflaterCompat
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.*
 
 /**
- * Androidx AsyncLayoutInflater has the following limitations.
- * 1. Use a single thread for all works. Here we are introducing coroutine
- * 2. If the queue exceeds 10 items, the main thread will be delayed.
- * 3. does not support setting a {@link LayoutInflater.Factory} nor {@link LayoutInflater.Factory2}. Here we are Adding support
- * 4. There is no way to cancel ongoing inflation. here we are exposing coroutine job cancel method
+ * OkLayoutInflater solves below mentioned limitations of the **AsyncLayoutInflater**.
+ *
+ * AndroidX's AsyncLayoutInflater has the following limitations.
+ * 1. It uses a single thread for all works.
+ * 2. If the queue exceeds 10 items, the Main Thread will be delayed.
+ * 3. It does not support setting a [LayoutInflater.Factory] nor [LayoutInflater.Factory2].
+ * 4. There is no way to cancel ongoing inflation.
  */
-class OkLayoutInflater(context: Context) {
+class OkLayoutInflater : LifecycleEventObserver {
 
-    private val mInflater: LayoutInflater = BasicInflater(context)
+    private val tag = "AsyncInf"
+
+    private lateinit var context: Context
+    private var fragment: Fragment? = null
+    private var componentLifecycle: Lifecycle? = null
+
+    private val mInflater by lazy { BasicInflater(context) }
     private val coroutineContext = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + coroutineContext)
+
+    /**
+     * @param context For view inflation & adding Lifecycle Observer, if possible.
+     */
+    constructor(context: Context) {
+        init(context)
+    }
+
+    /**
+     * @param fragment For view inflation & adding Observer to the [Fragment.getViewLifecycleOwner].
+     */
+    constructor(fragment: Fragment) {
+        this.fragment = fragment
+        init(fragment.requireContext())
+    }
+
+    /**
+     * @param view For child view inflation in Custom Views.
+     * Inflation is cancelled if the view provided is detached from the window.
+     */
+    constructor(view: View) {
+        this.context = view.context
+        view.onViewDetachedFromWindow { cancel() }
+    }
+
+    private fun init(context: Context) {
+        this.context = context
+        componentLifecycle = if (fragment != null) fragment!!.viewLifecycleOwner.lifecycle
+        else if (context is LifecycleOwner) context.lifecycle
+        else null
+
+        if (componentLifecycle != null) {
+            componentLifecycle!!.addObserver(this)
+        } else {
+            Log.d(
+                tag,
+                "Current context does not seem to have a Lifecycle, make sure to call `cancelInflation()` " +
+                        "in your onDestroy or other appropriate lifecycle callback."
+            )
+        }
+    }
 
     fun inflate(
         @LayoutRes resId: Int,
@@ -36,6 +89,7 @@ class OkLayoutInflater(context: Context) {
     }
 
     fun cancel() {
+        coroutineContext.cancel()
         coroutineContext.cancelChildren()
     }
 
@@ -47,27 +101,23 @@ class OkLayoutInflater(context: Context) {
     } catch (ex: RuntimeException) {
         Log.e("AsyncInf", "AsyncInf Failed to inflate on bg thread. message=${ex.message}")
 
-        // Some views need to be inflation-only in the main thread, fall back to inflation in the main thread if there is an exception
-        withContext(Dispatchers.Main) {
-            mInflater.inflate(resId, parent, false)
-        }
+        // Some views need to be inflation-only in the main thread,
+        // fall back to inflation in the main thread if there is an exception
+        withContext(Dispatchers.Main) { mInflater.inflate(resId, parent, false) }
     }
 
-    private class BasicInflater constructor(context: Context?) : LayoutInflater(context) {
+    private class BasicInflater constructor(context: Context) : LayoutInflater(context) {
 
         override fun cloneInContext(newContext: Context): LayoutInflater {
             return BasicInflater(newContext)
         }
 
-        @Throws(ClassNotFoundException::class)
         override fun onCreateView(name: String, attrs: AttributeSet): View {
             for (prefix in sClassPrefixList) {
                 try {
                     val view = createView(name, prefix, attrs)
-                    if (view != null) {
-                        return view
-                    }
-                } catch (e: ClassNotFoundException) {
+                    if (view != null) return view
+                } catch (_: ClassNotFoundException) {
                 }
             }
             return super.onCreateView(name, attrs)
@@ -75,9 +125,7 @@ class OkLayoutInflater(context: Context) {
 
         companion object {
             private val sClassPrefixList = arrayOf(
-                "android.widget.",
-                "android.webkit.",
-                "android.app."
+                "android.widget.", "android.webkit.", "android.app."
             )
         }
 
@@ -88,6 +136,13 @@ class OkLayoutInflater(context: Context) {
                     LayoutInflaterCompat.setFactory2(this, appCompatDelegate)
                 }
             }
+        }
+    }
+
+    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+        if (event == Lifecycle.Event.ON_DESTROY) {
+            cancel()
+            componentLifecycle?.removeObserver(this)
         }
     }
 }

@@ -1,59 +1,43 @@
 ## OkLayoutInflater
 
-AndroidX [AsyncLayoutInflater](https://developer.android.com/reference/androidx/asynclayoutinflater/view/AsyncLayoutInflater) has some limitations. Here is an improved version of AsyncLayoutInflater with coroutine.
+AndroidX [AsyncLayoutInflater](https://developer.android.com/reference/androidx/asynclayoutinflater/view/AsyncLayoutInflater)
+has some limitations. Here is an improved version of AsyncLayoutInflater with Coroutines.
 
 1. Single thread to do all the inflate work
-2. Inflatework is not lifecycle aware/There is no way to cancel ongoing inflation
-3. Does not support LayoutInflater.Factory2.
-4. The default size limit of the cache queue is 10. If it exceeds 10, it will cause the main thread to wait.
+2. Inflate work is not lifecycle aware, there is no way to cancel ongoing inflation
+3. Does not support LayoutInflater.Factory2
+4. The default size limit of the cache queue is 10. If it exceeds 10, it will cause the main thread
+   to wait
 
 Using OkLayoutInflater, we have improved threading limitations.
 
-
 ### Usage
- **Example of usage in fragment**
+
+**Example in a Fragment**
 
 ```
-private val okLayoutInflater by lazy { OkLayoutInflater(requireContext()) }
+private val okLayoutInflater by lazy { OkLayoutInflater(this) }
 
 override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val v = inflater.inflate(R.layout.loader_view, container, false)
-
-        okLayoutInflater.inflate(
-            contentLayoutId,
-            container
-        ) {
-            (v as? ViewGroup)?.addView(it)
-        }
-        return v
-}
-
-override fun onDestroyView() {
-    okLayoutInflater.cancel()
-    super.onDestroyView()
+    val loadingView = inflater.inflate(R.layout.loader_view, container, false)
+    okLayoutInflater.inflate(contentLayoutId, container) { inflatedView ->
+        (loadingView as? ViewGroup)?.addView(inflatedView)
+    }
+    return loadingView
 }
 ```
 
- **Example of usage in view**
+**Example of usage in a View**
 
 ```
-private val okLayoutInflater by lazy { OkLayoutInflater(context) }
+private val okLayoutInflater by lazy { OkLayoutInflater(this) }
 
 override fun onAttachedToWindow() {
     super.onAttachedToWindow()
-    LayoutInflater.from(context).inflate(R.layout.viewstub_customer_tx_view, this, true)
-    okLayoutInflater.inflate(
-        merchant.okcredit.accounting.R.layout.transaction_view,
-        this
-    ) {
+    okLayoutInflater.inflate(R.layout.transaction_view, this) { inflatedView ->
         removeAllViews()
-        addView(it, LayoutParams.MATCH_PARENT)
+        addView(inflatedView, LayoutParams.MATCH_PARENT)
     }
-}
-
-override fun onDetachedFromWindow() {
-    super.onDetachedFromWindow()
-    okLayoutInflater.cancel()
 }
 ```
 
