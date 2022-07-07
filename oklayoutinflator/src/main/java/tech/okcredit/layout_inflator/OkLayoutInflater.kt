@@ -16,7 +16,7 @@ import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.*
 
 /**
- * OkLayoutInflater solves below mentioned limitations of the **AsyncLayoutInflater**.
+ * OkLayoutInflater solves below mentioned limitations of the AndroidX AsyncLayoutInflater.
  *
  * AndroidX's AsyncLayoutInflater has the following limitations.
  * 1. It uses a single thread for all works.
@@ -64,12 +64,14 @@ class OkLayoutInflater : LifecycleEventObserver {
 
     private fun init(context: Context) {
         this.context = context
-        componentLifecycle = if (fragment != null) fragment!!.viewLifecycleOwner.lifecycle
-        else if (context is LifecycleOwner) context.lifecycle
-        else null
+        componentLifecycle = when {
+            fragment != null -> fragment!!.viewLifecycleOwner.lifecycle
+            context is LifecycleOwner -> context.lifecycle
+            else -> null
+        }
 
         if (componentLifecycle != null) {
-            componentLifecycle!!.addObserver(this)
+            componentLifecycle?.addObserver(this)
         } else {
             Log.d(
                 TAG,
