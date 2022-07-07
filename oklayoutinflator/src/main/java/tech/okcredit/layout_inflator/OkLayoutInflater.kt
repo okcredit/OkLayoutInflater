@@ -32,7 +32,6 @@ class OkLayoutInflater : LifecycleEventObserver {
 
     private lateinit var context: Context
     private var fragment: Fragment? = null
-    private var componentLifecycle: Lifecycle? = null
 
     private val mInflater by lazy { BasicInflater(context) }
     private val coroutineContext = SupervisorJob()
@@ -64,14 +63,14 @@ class OkLayoutInflater : LifecycleEventObserver {
 
     private fun init(context: Context) {
         this.context = context
-        componentLifecycle = when {
+        val componentLifecycle = when {
             fragment != null -> fragment!!.viewLifecycleOwner.lifecycle
             context is LifecycleOwner -> context.lifecycle
             else -> null
         }
 
         if (componentLifecycle != null) {
-            componentLifecycle?.addObserver(this)
+            componentLifecycle.addObserver(this)
         } else {
             Log.d(
                 TAG,
@@ -117,7 +116,6 @@ class OkLayoutInflater : LifecycleEventObserver {
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
         if (event == Lifecycle.Event.ON_DESTROY) {
             cancel()
-            componentLifecycle?.removeObserver(this)
         }
     }
 
