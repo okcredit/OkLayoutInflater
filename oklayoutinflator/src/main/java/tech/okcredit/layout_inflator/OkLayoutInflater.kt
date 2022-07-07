@@ -26,7 +26,9 @@ import kotlinx.coroutines.*
  */
 class OkLayoutInflater : LifecycleEventObserver {
 
-    private val tag = "AsyncInf"
+    internal companion object {
+        const val TAG = "OkLayoutInflater"
+    }
 
     private lateinit var context: Context
     private var fragment: Fragment? = null
@@ -70,8 +72,8 @@ class OkLayoutInflater : LifecycleEventObserver {
             componentLifecycle!!.addObserver(this)
         } else {
             Log.d(
-                tag,
-                "Current context does not seem to have a Lifecycle, make sure to call `cancelInflation()` " +
+                TAG,
+                "Current context does not seem to have a Lifecycle, make sure to call `cancel()` " +
                         "in your onDestroy or other appropriate lifecycle callback."
             )
         }
@@ -103,7 +105,7 @@ class OkLayoutInflater : LifecycleEventObserver {
     ): View = try {
         mInflater.inflate(resId, parent, false)
     } catch (ex: RuntimeException) {
-        Log.e("AsyncInf", "AsyncInf Failed to inflate on bg thread. message=${ex.message}")
+        Log.e(TAG, "The background thread failed to inflate. Inflation falls back to the main thread. Error message=${ex.message}")
 
         // Some views need to be inflation-only in the main thread,
         // fall back to inflation in the main thread if there is an exception
