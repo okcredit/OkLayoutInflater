@@ -57,7 +57,7 @@ class OkLayoutInflater : LifecycleEventObserver {
      */
     constructor(view: View) {
         this.context = view.context
-        view.onViewDetachedFromWindow { cancel() }
+        view.onViewDetachedFromWindow { cancelChildJobs() }
     }
 
     private fun init(context: Context) {
@@ -90,6 +90,10 @@ class OkLayoutInflater : LifecycleEventObserver {
 
     fun cancel() {
         coroutineContext.cancel()
+        coroutineContext.cancelChildren()
+    }
+
+    private fun cancelChildJobs() {
         coroutineContext.cancelChildren()
     }
 
