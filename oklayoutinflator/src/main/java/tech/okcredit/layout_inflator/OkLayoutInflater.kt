@@ -114,6 +114,13 @@ class OkLayoutInflater : LifecycleEventObserver {
         withContext(Dispatchers.Main) { mInflater.inflate(resId, parent, false) }
     }
 
+    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+        if (event == Lifecycle.Event.ON_DESTROY) {
+            cancel()
+            componentLifecycle?.removeObserver(this)
+        }
+    }
+
     private class BasicInflater constructor(context: Context) : LayoutInflater(context) {
 
         override fun cloneInContext(newContext: Context): LayoutInflater {
@@ -144,13 +151,6 @@ class OkLayoutInflater : LifecycleEventObserver {
                     LayoutInflaterCompat.setFactory2(this, appCompatDelegate)
                 }
             }
-        }
-    }
-
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        if (event == Lifecycle.Event.ON_DESTROY) {
-            cancel()
-            componentLifecycle?.removeObserver(this)
         }
     }
 }
