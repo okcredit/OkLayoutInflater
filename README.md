@@ -3,19 +3,32 @@
 AndroidX [AsyncLayoutInflater](https://developer.android.com/reference/androidx/asynclayoutinflater/view/AsyncLayoutInflater)
 has some limitations. Here is an improved version of AsyncLayoutInflater with Coroutines.
 
-1. Single thread to do all the inflate work
-2. Inflate work is not lifecycle aware, there is no way to cancel ongoing inflation
-3. Does not support LayoutInflater.Factory2
-4. The default size limit of the cache queue is 10. If it exceeds 10, it will cause the main thread
-   to wait
+1. A single thread to handle all inflation tasks.
+2. There is no way to cancel ongoing inflation because the inflation work is not lifecycle aware.
+3. LayoutInflater.Factory2 is not supported.
+4. AndroidX AsyncLayoutInflater has some below limitations. With Coroutines, we have improved AsyncLayoutInflater.
 
-Using OkLayoutInflater, we have improved threading limitations.
+By using OkLayoutInflater, we have improved the above limitations.
 
 ### Usage
 
+**Example in a Activity**
+```kotlin
+private lateinit var binding: ActivityMainBinding
+private val okLayoutInflater by lazy { OkLayoutInflater(this) }
+
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.layout_loading_view)
+    okLayoutInflater.inflate(R.layout.activity_main, null) { view ->
+        binding = ActivityMainBinding.bind(view)
+    }
+}
+```
+
 **Example in a Fragment**
 
-```
+```kotlin
 private val okLayoutInflater by lazy { OkLayoutInflater(this) }
 
 override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -29,7 +42,7 @@ override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, saved
 
 **Example of usage in a View**
 
-```
+```kotlin
 private val okLayoutInflater by lazy { OkLayoutInflater(this) }
 
 override fun onAttachedToWindow() {
@@ -49,9 +62,16 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.okcredit:OkLayoutInflater:1.0'
+    implementation 'com.github.okcredit:OkLayoutInflater:1.0.2'
 }
 ```
+
+### Performance improvement of OkLayoutInflator
+Inflating XML is expensive due to loading the layout into memory and parsing views through reflection. It is known that when the main thread performs some time-consuming operations, it may cause the app to freeze. The OkLayoutInflator allows you to offload those tasks to background threads. Further, it allows you to inflate multiple items in parallel. In Recyclerview, this is particularly useful. A systrace slice showing an optimization for the recycler view item can be seen below.
+
+
+![Performance improvement of OkLayoutInflator.](images/oklayout_recyclerview_optimisation.png)
+
 
 ### License
 
