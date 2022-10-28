@@ -1,14 +1,13 @@
 ## OkLayoutInflater
 
-AndroidX [AsyncLayoutInflater](https://developer.android.com/reference/androidx/asynclayoutinflater/view/AsyncLayoutInflater)
-has some limitations. Here is an improved version of AsyncLayoutInflater with Coroutines.
+AndroidX [AsyncLayoutInflater](https://developer.android.com/reference/androidx/asynclayoutinflater/view/AsyncLayoutInflater) has some limitations. Introducing OkLayoutInflater with Coroutines to address these limitations. Below are the limitations
 
 1. A single thread to handle all inflation tasks.
-2. There is no way to cancel ongoing inflation because the inflation work is not lifecycle aware.
+2. Cancellation of ongoing inflation is not possible because inflation work is not lifecycle aware.
 3. LayoutInflater.Factory2 is not supported.
-4. AndroidX AsyncLayoutInflater has some below limitations. With Coroutines, we have improved AsyncLayoutInflater.
+4. The default size limit of the cache queue is [10](https://android.googlesource.com/platform/frameworks/support/+/89f7eba/v4/java/android/support/v4/view/AsyncLayoutInflater.java#166). If it exceeds 10, it will cause the main thread to wait.
 
-By using OkLayoutInflater, we have improved the above limitations.
+Check out this [blog post](https://medium.com/okcredit/oklayoutinflater-3c5cd93c6ebc) for more details about each limitation and how OkLayoutInflator fixed it.
 
 ### Usage
 
@@ -67,7 +66,7 @@ dependencies {
 ```
 
 ### Performance improvement of OkLayoutInflator
-Inflating XML is expensive due to loading the layout into memory and parsing views through reflection. It is known that when the main thread performs some time-consuming operations, it may cause the app to freeze. The OkLayoutInflator allows you to offload those tasks to background threads. Further, it allows you to inflate multiple items in parallel. In Recyclerview, this is particularly useful. A systrace slice showing an optimization for the recycler view item can be seen below.
+Inflating XML is expensive due to loading the layout into memory and parsing views through reflection. It is known that when the main thread performs some time-consuming operations, it may cause the app to freeze. OkLayoutInflator allows you to offload those tasks to background threads with maximum parallelism. In Recyclerview, this is particularly useful. A systrace slice showing an optimization for the recycler view item can be seen below.
 
 
 ![Performance improvement of OkLayoutInflator.](images/oklayout_recyclerview_optimisation.png)
